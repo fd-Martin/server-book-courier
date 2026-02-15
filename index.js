@@ -380,6 +380,19 @@ async function run() {
       res.send({ success: false });
     });
 
+
+
+    //payment history
+
+        app.get("/payments-history", verifyFBToken, async (req, res) => {
+      const { email } = req.query;
+      const query = { customerEmail: email };
+      const result = await paymentsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
