@@ -64,8 +64,7 @@ async function run() {
     const wishListCollection = db.collection("wishList");
     const reviewsCollection = db.collection("reviews");
 
-
-        //verify admin
+    //verify admin
     const verifyAdmin = async (req, res, next) => {
       const query = { email: req.decoded_email };
       const user = await usersCollection.findOne(query);
@@ -85,6 +84,12 @@ async function run() {
       next();
     };
 
+    //user part
+    app.get("/users", verifyFBToken, verifyAdmin, async (req, res) => {
+      const query = { role: req.query.role };
+      const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
