@@ -393,6 +393,26 @@ async function run() {
 
 
 
+        //orders related apis
+
+        //myorder for user
+    app.get("/my-orders", verifyFBToken, async (req, res) => {
+      const query = { customerEmail: req.query.email };
+      const result = await ordersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+//get order for Librarian
+    app.get("/orders", verifyFBToken, verifyLibrarian, async (req, res) => {
+      const query = { bookAuthorEmail: req.query.email };
+      const result = await ordersCollection
+        .find(query)
+        .project({ bookName: 1, customerName: 1, status: 1 })
+        .toArray();
+      res.send(result);
+    });
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
