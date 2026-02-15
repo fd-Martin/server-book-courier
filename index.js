@@ -10,7 +10,12 @@ const port = process.env.PORT || 3000;
 
 
 
+const decoded = Buffer.from(process.env.FIREBASE_KEY_BASE64, "base64").toString("utf8");
+const serviceAccount = JSON.parse(decoded);
 
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
 
 
 
