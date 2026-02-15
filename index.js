@@ -1,7 +1,7 @@
 const express = require("express");
+require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-require("dotenv").config();
 const admin = require("firebase-admin");
 const cors = require("cors");
 const app = express();
@@ -39,7 +39,7 @@ const verifyFBToken = async (req, res, next) => {
   }
 };
 
-const uri = `mongodb+srv://${db_user}>:${db_pass}>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.db_user}>:${process.env.db_pass}>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -348,9 +348,9 @@ async function run() {
     app.patch("/payment-success", verifyFBToken, async (req, res) => {
       const sessionId = req.query.session_id;
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      const transectionId = session.payment_intent;
+      const transeactionId = session.payment_intent;
       const query = {
-        transectionId,
+        transectionId: transeactionId,
       };
       const alreadyPaid = await paymentsCollection.findOne(query);
       if (alreadyPaid) {
@@ -371,7 +371,7 @@ async function run() {
           customerEmail: session.customer_email,
           bookName: session.metadata.name,
           orderId: session.metadata.orderId,
-          transectionId,
+          transectionId: transeactionId,
           paidAt: new Date(),
         };
         await paymentsCollection.insertOne(payment);
@@ -463,9 +463,7 @@ async function run() {
       res.send({ users, books, orders, payments, reviews, wishlist });
     });
 
-
-
-  //for wishlist
+    //for wishlist
     app.post("/user-wishlist", verifyFBToken, async (req, res) => {
       const { bookId, bookName, price, bookPhotoURL } = req.body;
       const userEmail = req.decoded_email;
@@ -491,18 +489,15 @@ async function run() {
       res.status(201).send(result);
     });
 
+    // get user wishlist
 
-
-// get user wishlist
-
-app.get("/user-wishlist", verifyFBToken, async (req, res) => {
+    app.get("/user-wishlist", verifyFBToken, async (req, res) => {
       const { email } = req.query;
       const query = { userEmail: email };
       const result = await wishListCollection.find(query).toArray();
       res.send(result);
     });
 
-    
     // delete user wishlist
 
     app.delete("/user-wishlist/:id", async (req, res) => {
@@ -511,6 +506,51 @@ app.get("/user-wishlist", verifyFBToken, async (req, res) => {
       res.send(result);
     });
 
+    //REVIEW APIs
+
+    //get review
+    app.get(
+      "/book-review-permission/:bookId",
+      verifyFBToken,
+      async (req, res) => {
+        const { bookId } = req.params;
+        const email = req.decoded_email;
+        const query = {
+          bookId,
+          customerEmail: email,
+          paymentStatus: "paid",
+          reviewStatus: false,
+        };
+
+        const order = await ordersCollection.findOne(query);
+        res.send({ canReview: !!order });
+      },
+    );
+
+    //get review
+    app.get("/book-review/:bookId", async (req, res) => {
+      const { bookId } = req.params;
+      const query = { bookId: bookId };
+      const result = await reviewsCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //post review
+    app.post("/book-review", async (req, res) => {
+      const reviewInfo = req.body;
+      reviewInfo.createdAt = new Date();
+      const result = await reviewsCollection.insertOne(reviewInfo);
+      await ordersCollection.updateOne(
+        {
+          bookId: reviewInfo.bookId,
+          customerEmail: reviewInfo.customerEmail,
+        },
+        {
+          $set: { reviewStatus: true },
+        },
+      );
+      res.send(result);
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
@@ -530,4 +570,11 @@ app.get("/", (req, res) => {
 
 app.listen(port, () => {
   console.log(`Example app listening on port ${port}`);
+});
+
+app.get("/", async (req, res) => {
+  res.send("book courier is working");
+});
+app.listen(port, () => {
+  console.log(`App is listening from port ${port}`);
 });
