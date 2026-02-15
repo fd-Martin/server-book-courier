@@ -320,43 +320,54 @@ async function run() {
     //payment related APIs
 
     //payment chectout session
+
     app.post("/payment-checkout-sessions", verifyFBToken, async (req, res) => {
       const paymentInfo = req.body;
-      const amount = parseInt(paymentInfo.price) * 100;
+
+      const book = await booksCollection.findOne({
+        _id: new ObjectId(paymentInfo.bookId),
+      });
+
+      if (!book) {
+        return res.status(404).send({ message: "Book not found" });
+      }
+
+      const amount = book.price * 100;
+
       const session = await stripe.checkout.sessions.create({
         line_items: [
           {
-            // Provide the exact Price ID (for example, price_1234) of the product you want to sell
             price_data: {
               currency: "usd",
-              unit_amount: amount,
               product_data: {
-                name: paymentInfo.bookName,
+                name: book.bookName,
               },
+              unit_amount: amount,
             },
             quantity: 1,
           },
         ],
-        customer_email: paymentInfo.customerEmail,
+        customer_email: req.decoded_email,
         metadata: {
-          name: paymentInfo.bookName,
+          name: book.bookName,
           orderId: paymentInfo.orderId,
         },
         mode: "payment",
         success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
         cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled`,
       });
+
       res.send({ url: session.url });
     });
 
-    //payment retrive session
+    //payment retrieve session
 
     app.patch("/payment-success", verifyFBToken, async (req, res) => {
       const sessionId = req.query.session_id;
       const session = await stripe.checkout.sessions.retrieve(sessionId);
-      const transeactionId = session.payment_intent;
+      const transactionId = session.payment_intent;
       const query = {
-        transectionId: transeactionId,
+        transectionId: transactionId,
       };
       const alreadyPaid = await paymentsCollection.findOne(query);
       if (alreadyPaid) {
@@ -377,7 +388,7 @@ async function run() {
           customerEmail: session.customer_email,
           bookName: session.metadata.name,
           orderId: session.metadata.orderId,
-          transectionId: transeactionId,
+          transactionId: transactionId,
           paidAt: new Date(),
         };
         await paymentsCollection.insertOne(payment);
@@ -547,8 +558,9 @@ async function run() {
     });
 
     //post review
-    app.post("/book-review", async (req, res) => {
+    app.post("/book-review", verifyFBToken, async (req, res) => {
       const reviewInfo = req.body;
+      reviewInfo.customerEmail = req.decoded_email;
       reviewInfo.createdAt = new Date();
       const result = await reviewsCollection.insertOne(reviewInfo);
       await ordersCollection.updateOne(
