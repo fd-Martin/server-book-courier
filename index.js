@@ -24,7 +24,29 @@ app.use(cors());
 
 
 
-const uri = "mongodb+srv://<db_username>:<db_password>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0";
+//verify firebase token
+const verifyFBToken = async (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  const token = authorization.split(" ")[1];
+  if (!token) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+  try {
+    const decoded = await admin.auth().verifyIdToken(token);
+    req.decoded_email = decoded.email;
+    next();
+  } catch (error) {
+    return res.status(401).send({ message: "Unauthorized Access" });
+  }
+};
+
+
+
+
+const uri = `mongodb+srv://${db_user}>:${db_pass}>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
