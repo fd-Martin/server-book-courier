@@ -97,12 +97,31 @@ async function run() {
       const email = user.email;
       const userExist = await usersCollection.findOne({ email });
       if (userExist) {
-        return res.send({ message: "User Already Axist" });
+        return res.send({ message: "User Already Exist" });
       }
       user.createdAt = new Date();
       user.role = "user";
       const result = await usersCollection.insertOne(user);
       res.send(result);
+    });
+
+    //user patch part
+    app.patch("/users/:id", verifyFBToken, async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      const role = req.body;
+      const updateDoc = {
+        $set: role,
+      };
+      const result = await usersCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+    //user get  part by role
+    app.get("/users/:email/role", async (req, res) => {
+      const email = req.params.email;
+      const query = { email };
+      const result = await usersCollection.findOne(query);
+      res.send({ role: result?.role || "user" });
     });
 
     // Send a ping to confirm a successful connection
