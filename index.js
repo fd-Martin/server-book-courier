@@ -124,6 +124,33 @@ async function run() {
       res.send({ role: result?.role || "user" });
     });
 
+
+        //book related apis
+
+
+
+            app.post("/books", verifyFBToken, verifyLibrarian, async (req, res) => {
+      const bookInfo = req.body;
+      const book = {
+        authorName: bookInfo.authorName,
+        authorEmail: bookInfo.authorEmail,
+        authorPhoneNumber: bookInfo.authorPhoneNumber,
+        bookName: bookInfo.bookName,
+        bookPhotoURL: bookInfo.bookPhotoURL,
+        address: bookInfo.address,
+        status: bookInfo.status,
+        price: Number(bookInfo.price),
+        description: bookInfo.description,
+      };
+      book.createdAt = new Date();
+      if (book.status === "published") {
+        book.publishedAt = new Date();
+      }
+      const result = await booksCollection.insertOne(book);
+      res.send(result);
+    });
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
