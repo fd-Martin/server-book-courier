@@ -246,6 +246,27 @@ async function run() {
       },
     );
 
+
+        //book details for user
+    app.get("/book-details/:id", verifyFBToken, async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      const result = await booksCollection.findOne(query);
+      res.send(result);
+    });
+
+    //book details for librarian
+    app.get(
+      "/selected-book/:id",
+      verifyFBToken,
+      verifyLibrarian,
+      async (req, res) => {
+        const query = { _id: new ObjectId(req.params.id) };
+        const result = await booksCollection.findOne(query);
+        res.send(result);
+      },
+    );
+
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
