@@ -307,6 +307,14 @@ async function run() {
       res.send(result);
     });
 
+//book delete by admin
+        app.delete("/books/:id", verifyFBToken, verifyAdmin, async (req, res) => {
+      const { id } = req.params;
+      const query = { _id: new ObjectId(id) };
+      const result = await booksCollection.deleteOne(query);
+      res.send(result);
+    });
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
