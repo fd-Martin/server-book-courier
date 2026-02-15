@@ -428,6 +428,17 @@ async function run() {
       },
     );
 
+//book order by user
+
+        app.post("/book-orders", verifyFBToken, async (req, res) => {
+      const orderInfo = req.body;
+      orderInfo.orderDate = new Date();
+      orderInfo.status = "pending";
+      orderInfo.paymentStatus = "unpaid";
+      orderInfo.reviewStatus = false;
+      const result = await ordersCollection.insertOne(orderInfo);
+      res.send(result);
+    });
 
 
     // Send a ping to confirm a successful connection
