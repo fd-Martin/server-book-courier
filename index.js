@@ -294,6 +294,19 @@ async function run() {
       },
     );
 
+//book status patch by admin
+        app.patch("/books", verifyFBToken, verifyAdmin, async (req, res) => {
+      const { bookId, newStatus } = req.query;
+      const query = { _id: new ObjectId(bookId) };
+      const updateDoc = {
+        $set: {
+          status: newStatus,
+        },
+      };
+      const result = await booksCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
