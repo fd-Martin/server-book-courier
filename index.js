@@ -214,6 +214,38 @@ async function run() {
       res.send({ books: result, total: count });
     });
 
+
+        //books for admin
+    app.get(
+      "/all-books-admin",
+      verifyFBToken,
+      verifyAdmin,
+      async (req, res) => {
+        const { searchText, limit } = req.query;
+        const query = {};
+
+        if (searchText) {
+          query.$or = [
+            { bookName: { $regex: searchText, $options: "i" } },
+            { authorName: { $regex: searchText, $options: "i" } },
+          ];
+        }
+
+        const result = await booksCollection
+          .find(query)
+          .limit(Number(limit))
+          .project({
+              bookPhotoURL: 1,
+              bookName: 1,
+              createdAt: 1,
+              authorName: 1,
+              status: 1,
+          })
+          .toArray();
+        res.send(result);
+      },
+    );
+
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
     console.log(
