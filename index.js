@@ -116,6 +116,8 @@ async function run() {
       res.send(result);
     });
 
+    //book related apis//
+
     //user get  part by role
     app.get("/users/:email/role", async (req, res) => {
       const email = req.params.email;
@@ -124,12 +126,9 @@ async function run() {
       res.send({ role: result?.role || "user" });
     });
 
+    //book post partby librarian
 
-        //book related apis
-
-
-
-            app.post("/books", verifyFBToken, verifyLibrarian, async (req, res) => {
+    app.post("/books", verifyFBToken, verifyLibrarian, async (req, res) => {
       const bookInfo = req.body;
       const book = {
         authorName: bookInfo.authorName,
@@ -150,6 +149,70 @@ async function run() {
       res.send(result);
     });
 
+    //books get part by librarian
+    app.get(
+      "/books-library",
+      verifyFBToken,
+      verifyLibrarian,
+      async (req, res) => {
+        const { email } = req.query;
+        if (email !== req.decoded_email) {
+          return res.status(403).send({ message: "forbidden access" });
+        }
+        const query = {};
+        if (email) {
+          query.authorEmail = email;
+        }
+
+        const result = await booksCollection.find(query).toArray();
+        res.send(result);
+      },
+    );
+
+    // book for latest section for user
+    app.get("/latest-books", async (req, res) => {
+      const result = await booksCollection
+        .find()
+        .sort({ createdAt: -1 })
+        .project({ bookName: 1, description: 1, bookPhotoURL: 1, price: 1 })
+        .limit(8)
+        .toArray();
+      res.send(result);
+    });
+
+
+
+       //books for user
+    app.get("/all-books", async (req, res) => {
+      const { status, searchText, limit, skip } = req.query;
+      console.log(searchText);
+      const query = {};
+      if (status) {
+        query.status = status;
+      }
+      if (searchText) {
+        query.$or = [
+          { bookName: { $regex: searchText, $options: "i" } },
+          { authorName: { $regex: searchText, $options: "i" } },
+        ];
+      }
+
+      const result = await booksCollection
+        .find(query)
+        .skip(Number(skip))
+        .limit(Number(limit))
+        .sort({ price: -1 })
+        .project({
+            createdAt: 1,
+            bookName: 1,
+            description: 1,
+            price: 1,
+            bookPhotoURL: 1,
+        })
+        .toArray();
+      const count = await booksCollection.countDocuments(query);
+      res.send({ books: result, total: count });
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
