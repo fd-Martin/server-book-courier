@@ -310,13 +310,8 @@ async function run() {
       const result = await booksCollection.deleteOne(query);
       res.send(result);
     });
-    
 
-
-
-    
     //payment related APIs
-
 
     //payment chectout session
     app.post("/payment-checkout-sessions", verifyFBToken, async (req, res) => {
@@ -348,7 +343,42 @@ async function run() {
       res.send({ url: session.url });
     });
 
+    //payment retrive session
 
+    app.patch("/payment-success", verifyFBToken, async (req, res) => {
+      const sessionId = req.query.session_id;
+      const session = await stripe.checkout.sessions.retrieve(sessionId);
+      const transectionId = session.payment_intent;
+      const query = {
+        transectionId,
+      };
+      const alreadyPaid = await paymentsCollection.findOne(query);
+      if (alreadyPaid) {
+        return res.send({ message: "Already Paid " });
+      }
+
+      if (session.payment_status === "paid") {
+        const query = { _id: new ObjectId(session.metadata.orderId) };
+        const updateDoc = {
+          $set: {
+            paymentStatus: "paid",
+          },
+        };
+        const result = await ordersCollection.updateOne(query, updateDoc);
+        const payment = {
+          amount: session.amount_total / 100,
+          currency: session.currency,
+          customerEmail: session.customer_email,
+          bookName: session.metadata.name,
+          orderId: session.metadata.orderId,
+          transectionId,
+          paidAt: new Date(),
+        };
+        await paymentsCollection.insertOne(payment);
+        return res.send(result);
+      }
+      res.send({ success: false });
+    });
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
