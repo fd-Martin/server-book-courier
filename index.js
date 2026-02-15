@@ -380,29 +380,25 @@ async function run() {
       res.send({ success: false });
     });
 
-
-
     //payment history
 
-        app.get("/payments-history", verifyFBToken, async (req, res) => {
+    app.get("/payments-history", verifyFBToken, async (req, res) => {
       const { email } = req.query;
       const query = { customerEmail: email };
       const result = await paymentsCollection.find(query).toArray();
       res.send(result);
     });
 
+    //orders related apis
 
-
-        //orders related apis
-
-        //myorder for user
+    //myorder for user
     app.get("/my-orders", verifyFBToken, async (req, res) => {
       const query = { customerEmail: req.query.email };
       const result = await ordersCollection.find(query).toArray();
       res.send(result);
     });
 
-//get order for Librarian
+    //get order for Librarian
     app.get("/orders", verifyFBToken, verifyLibrarian, async (req, res) => {
       const query = { bookAuthorEmail: req.query.email };
       const result = await ordersCollection
@@ -412,8 +408,8 @@ async function run() {
       res.send(result);
     });
 
-//book delivery status
-        app.patch(
+    //book delivery status
+    app.patch(
       "/orders/:id",
       verifyFBToken,
       verifyLibrarian,
@@ -428,9 +424,9 @@ async function run() {
       },
     );
 
-//book order by user
+    //book order by user
 
-        app.post("/book-orders", verifyFBToken, async (req, res) => {
+    app.post("/book-orders", verifyFBToken, async (req, res) => {
       const orderInfo = req.body;
       orderInfo.orderDate = new Date();
       orderInfo.status = "pending";
@@ -440,8 +436,8 @@ async function run() {
       res.send(result);
     });
 
-//book patch
-        app.patch("/book-orders/:id", verifyFBToken, async (req, res) => {
+    //book patch
+    app.patch("/book-orders/:id", verifyFBToken, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       const updateDoc = {
         $set: req.body,
@@ -450,6 +446,50 @@ async function run() {
       res.send(result);
     });
 
+    //get map
+    app.get("/coverage", async (req, res) => {
+      const result = await mapDataCollection.find().toArray();
+      res.send(result);
+    });
+
+    //  statics for user
+    app.get("/all-data-count", async (req, res) => {
+      const users = await usersCollection.countDocuments();
+      const books = await booksCollection.countDocuments();
+      const orders = await ordersCollection.countDocuments();
+      const payments = await paymentsCollection.countDocuments();
+      const reviews = await reviewsCollection.countDocuments();
+      const wishlist = await wishListCollection.countDocuments();
+      res.send({ users, books, orders, payments, reviews, wishlist });
+    });
+
+
+
+  //for wishlist
+    app.post("/user-wishlist", verifyFBToken, async (req, res) => {
+      const { bookId, bookName, price, bookPhotoURL } = req.body;
+      const userEmail = req.decoded_email;
+      console.log("email:", userEmail);
+      const wishlistQuery = {
+        bookId,
+        userEmail,
+      };
+      const exists = await wishListCollection.findOne(wishlistQuery);
+
+      if (exists) {
+        return res.status(409).send({ message: "Already Added to Wishlist" });
+      }
+      const wishlistItem = {
+        bookId,
+        bookName,
+        price,
+        bookPhotoURL,
+        userEmail,
+        seenAt: new Date(),
+      };
+      const result = await wishListCollection.insertOne(wishlistItem);
+      res.status(201).send(result);
+    });
 
 
     // Send a ping to confirm a successful connection
