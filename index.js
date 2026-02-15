@@ -39,7 +39,7 @@ const verifyFBToken = async (req, res, next) => {
   }
 };
 
-const uri = `mongodb+srv://${process.env.db_user}>:${process.env.db_pass}>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0`;
+const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.pstqy5z.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
 const client = new MongoClient(uri, {
@@ -53,7 +53,7 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    // await client.connect();
+    await client.connect();
 
     const db = client.db("courier-db");
     const usersCollection = db.collection("users");
@@ -106,7 +106,7 @@ async function run() {
     });
 
     //user patch part
-    app.patch("/users/:id", verifyFBToken, async (req, res) => {
+    app.patch("/users/:id", verifyFBToken, verifyAdmin, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       const role = req.body;
       const updateDoc = {
@@ -119,11 +119,17 @@ async function run() {
     //book related apis//
 
     //user get  part by role
-    app.get("/users/:email/role", async (req, res) => {
+    app.get("/users/:email/role", verifyFBToken, async (req, res) => {
       const email = req.params.email;
-      const query = { email };
-      const result = await usersCollection.findOne(query);
-      res.send({ role: result?.role || "user" });
+
+      // 🚨 This is the important security check
+      if (email !== req.decoded_email) {
+        return res.status(403).send({ message: "Forbidden" });
+      }
+
+      const user = await usersCollection.findOne({ email });
+
+      res.send({ role: user?.role || "user" });
     });
 
     //book post partby librarian
@@ -383,7 +389,7 @@ async function run() {
     //payment history
 
     app.get("/payments-history", verifyFBToken, async (req, res) => {
-      const { email } = req.query;
+      const email = req.decoded_email;
       const query = { customerEmail: email };
       const result = await paymentsCollection.find(query).toArray();
       res.send(result);
@@ -393,14 +399,14 @@ async function run() {
 
     //myorder for user
     app.get("/my-orders", verifyFBToken, async (req, res) => {
-      const query = { customerEmail: req.query.email };
+      const query = { customerEmail: req.decoded_email };
       const result = await ordersCollection.find(query).toArray();
       res.send(result);
     });
 
     //get order for Librarian
     app.get("/orders", verifyFBToken, verifyLibrarian, async (req, res) => {
-      const query = { bookAuthorEmail: req.query.email };
+      const query = { bookAuthorEmail: req.decoded_email };
       const result = await ordersCollection
         .find(query)
         .project({ bookName: 1, customerName: 1, status: 1 })
@@ -428,11 +434,16 @@ async function run() {
 
     app.post("/book-orders", verifyFBToken, async (req, res) => {
       const orderInfo = req.body;
+
+      orderInfo.customerEmail = req.decoded_email;
+
       orderInfo.orderDate = new Date();
       orderInfo.status = "pending";
       orderInfo.paymentStatus = "unpaid";
       orderInfo.reviewStatus = false;
+
       const result = await ordersCollection.insertOne(orderInfo);
+
       res.send(result);
     });
 
@@ -464,19 +475,17 @@ async function run() {
     });
 
     //for wishlist
+
     app.post("/user-wishlist", verifyFBToken, async (req, res) => {
       const { bookId, bookName, price, bookPhotoURL } = req.body;
       const userEmail = req.decoded_email;
-      console.log("email:", userEmail);
-      const wishlistQuery = {
-        bookId,
-        userEmail,
-      };
+      const wishlistQuery = { bookId, userEmail };
       const exists = await wishListCollection.findOne(wishlistQuery);
 
       if (exists) {
         return res.status(409).send({ message: "Already Added to Wishlist" });
       }
+
       const wishlistItem = {
         bookId,
         bookName,
@@ -485,6 +494,7 @@ async function run() {
         userEmail,
         seenAt: new Date(),
       };
+
       const result = await wishListCollection.insertOne(wishlistItem);
       res.status(201).send(result);
     });
@@ -492,15 +502,16 @@ async function run() {
     // get user wishlist
 
     app.get("/user-wishlist", verifyFBToken, async (req, res) => {
-      const { email } = req.query;
-      const query = { userEmail: email };
+      const query = { userEmail: req.decoded_email };
+
       const result = await wishListCollection.find(query).toArray();
+
       res.send(result);
     });
 
     // delete user wishlist
 
-    app.delete("/user-wishlist/:id", async (req, res) => {
+    app.delete("/user-wishlist/:id", verifyFBToken, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       const result = await wishListCollection.deleteOne(query);
       res.send(result);
@@ -564,7 +575,7 @@ async function run() {
 }
 
 app.get("/", async (req, res) => {
-    res.send("book courier is working");
+  res.send("book courier is working");
 });
 app.listen(port, () => {
   console.log(`App is listening from port ${port}`);
