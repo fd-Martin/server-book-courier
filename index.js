@@ -8,21 +8,18 @@ const cors = require("cors");
 const app = express();
 const port = process.env.PORT || 3000;
 
-
-
-const decoded = Buffer.from(process.env.FIREBASE_KEY_BASE64, "base64").toString("utf8");
+const decoded = Buffer.from(process.env.FIREBASE_KEY_BASE64, "base64").toString(
+  "utf8",
+);
 const serviceAccount = JSON.parse(decoded);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
-
 //middlewar
 app.use(express.json());
 app.use(cors());
-
-
 
 //verify firebase token
 const verifyFBToken = async (req, res, next) => {
@@ -43,9 +40,6 @@ const verifyFBToken = async (req, res, next) => {
   }
 };
 
-
-
-
 const uri = `mongodb+srv://${db_user}>:${db_pass}>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0`;
 
 // Create a MongoClient with a MongoClientOptions object to set the Stable API version
@@ -54,32 +48,39 @@ const client = new MongoClient(uri, {
     version: ServerApiVersion.v1,
     strict: true,
     deprecationErrors: true,
-  }
+  },
 });
 
 async function run() {
   try {
     // Connect the client to the server	(optional starting in v4.7)
-    await client.connect();
+    // await client.connect();
+
+    const db = client.db("courier-db");
+    const usersCollection = db.collection("users");
+    const booksCollection = db.collection("books");
+    const ordersCollection = db.collection("orders");
+    const paymentsCollection = db.collection("payments");
+    const mapDataCollection = db.collection("mapData");
+    const wishListCollection = db.collection("wishList");
+    const reviewsCollection = db.collection("reviews");
+
     // Send a ping to confirm a successful connection
-    await client.db("admin").command({ ping: 1 });
-    console.log("Pinged your deployment. You successfully connected to MongoDB!");
+    // await client.db("admin").command({ ping: 1 });
+    console.log(
+      "Pinged your deployment. You successfully connected to MongoDB!",
+    );
   } finally {
     // Ensures that the client will close when you finish/error
-    await client.close();
+    // await client.close();
   }
 }
 run().catch(console.dir);
 
-
-
-
-
-
-app.get('/', (req, res) => {
-  res.send('Hello World!')
-})
+app.get("/", (req, res) => {
+  res.send("Hello World!");
+});
 
 app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+  console.log(`Example app listening on port ${port}`);
+});
