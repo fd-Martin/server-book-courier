@@ -266,6 +266,34 @@ async function run() {
       },
     );
 
+        //book details patch for librarian
+        app.patch(
+      "/book-details/:id",
+      verifyFBToken,
+      verifyLibrarian,
+      async (req, res) => {
+        const { id } = req.params;
+        const query = { _id: new ObjectId(id) };
+        const updateInfo = req.body;
+        const updatedBook = {
+          authorName: updateInfo.authorName,
+          authorEmail: updateInfo.authorEmail,
+          authorPhoneNumber: updateInfo.authorPhoneNumber,
+          bookName: updateInfo.bookName,
+          bookPhotoURL: updateInfo.bookPhotoURL,
+          address: updateInfo.address,
+          status: updateInfo.status,
+          price: Number(updateInfo.price),
+          description: updateInfo.description,
+        };
+        const updateDoc = {
+          $set: updatedBook,
+        };
+        const result = await booksCollection.updateOne(query, updateDoc);
+        res.send(result);
+      },
+    );
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
