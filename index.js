@@ -18,6 +18,10 @@ admin.initializeApp({
 });
 
 
+//middlewar
+app.use(express.json());
+app.use(cors());
+
 
 
 const uri = "mongodb+srv://<db_username>:<db_password>@cluster0.pstqy5z.mongodb.net/?appName=Cluster0";
