@@ -84,10 +84,24 @@ async function run() {
       next();
     };
 
-    //user part
+    //user get part
     app.get("/users", verifyFBToken, verifyAdmin, async (req, res) => {
       const query = { role: req.query.role };
       const result = await usersCollection.find(query).toArray();
+      res.send(result);
+    });
+
+    //user post part
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const email = user.email;
+      const userExist = await usersCollection.findOne({ email });
+      if (userExist) {
+        return res.send({ message: "User Already Axist" });
+      }
+      user.createdAt = new Date();
+      user.role = "user";
+      const result = await usersCollection.insertOne(user);
       res.send(result);
     });
 
