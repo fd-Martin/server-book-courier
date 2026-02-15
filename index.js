@@ -1,8 +1,7 @@
-require("dotenv").config();
 const express = require("express");
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const stripe = require("stripe")(process.env.STRIPE_SECRET);
-
+require("dotenv").config();
 const admin = require("firebase-admin");
 const cors = require("cors");
 const app = express();
@@ -64,6 +63,28 @@ async function run() {
     const mapDataCollection = db.collection("mapData");
     const wishListCollection = db.collection("wishList");
     const reviewsCollection = db.collection("reviews");
+
+
+        //verify admin
+    const verifyAdmin = async (req, res, next) => {
+      const query = { email: req.decoded_email };
+      const user = await usersCollection.findOne(query);
+      if (!user || user?.role !== "admin") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
+    //verify librarian
+    const verifyLibrarian = async (req, res, next) => {
+      const query = { email: req.decoded_email };
+      const user = await usersCollection.findOne(query);
+      // console.log(user);
+      if (!user || user?.role !== "librarian") {
+        return res.status(403).send({ message: "Forbidden Access" });
+      }
+      next();
+    };
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
