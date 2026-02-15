@@ -412,6 +412,23 @@ async function run() {
       res.send(result);
     });
 
+//book delivery status
+        app.patch(
+      "/orders/:id",
+      verifyFBToken,
+      verifyLibrarian,
+      async (req, res) => {
+        const query = { _id: new ObjectId(req.params.id) };
+        const status = req.body;
+        const updateDoc = {
+          $set: status,
+        };
+        const result = await ordersCollection.updateOne(query, updateDoc);
+        res.send(result);
+      },
+    );
+
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
