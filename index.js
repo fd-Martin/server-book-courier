@@ -440,6 +440,17 @@ async function run() {
       res.send(result);
     });
 
+//book patch
+        app.patch("/book-orders/:id", verifyFBToken, async (req, res) => {
+      const query = { _id: new ObjectId(req.params.id) };
+      const updateDoc = {
+        $set: req.body,
+      };
+      const result = await ordersCollection.updateOne(query, updateDoc);
+      res.send(result);
+    });
+
+
 
     // Send a ping to confirm a successful connection
     // await client.db("admin").command({ ping: 1 });
