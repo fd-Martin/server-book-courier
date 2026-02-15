@@ -562,11 +562,12 @@ async function run() {
     // await client.close();
   }
 }
-run().catch(console.dir);
 
 app.get("/", async (req, res) => {
-  res.send("book courier is working");
+    res.send("book courier is working");
 });
 app.listen(port, () => {
   console.log(`App is listening from port ${port}`);
 });
+
+run();
