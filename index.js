@@ -180,9 +180,7 @@ async function run() {
       res.send(result);
     });
 
-
-
-       //books for user
+    //books for user
     app.get("/all-books", async (req, res) => {
       const { status, searchText, limit, skip } = req.query;
       console.log(searchText);
@@ -203,19 +201,18 @@ async function run() {
         .limit(Number(limit))
         .sort({ price: -1 })
         .project({
-            createdAt: 1,
-            bookName: 1,
-            description: 1,
-            price: 1,
-            bookPhotoURL: 1,
+          createdAt: 1,
+          bookName: 1,
+          description: 1,
+          price: 1,
+          bookPhotoURL: 1,
         })
         .toArray();
       const count = await booksCollection.countDocuments(query);
       res.send({ books: result, total: count });
     });
 
-
-        //books for admin
+    //books for admin
     app.get(
       "/all-books-admin",
       verifyFBToken,
@@ -235,19 +232,18 @@ async function run() {
           .find(query)
           .limit(Number(limit))
           .project({
-              bookPhotoURL: 1,
-              bookName: 1,
-              createdAt: 1,
-              authorName: 1,
-              status: 1,
+            bookPhotoURL: 1,
+            bookName: 1,
+            createdAt: 1,
+            authorName: 1,
+            status: 1,
           })
           .toArray();
         res.send(result);
       },
     );
 
-
-        //book details for user
+    //book details for user
     app.get("/book-details/:id", verifyFBToken, async (req, res) => {
       const query = { _id: new ObjectId(req.params.id) };
       const result = await booksCollection.findOne(query);
@@ -266,8 +262,8 @@ async function run() {
       },
     );
 
-        //book details patch for librarian
-        app.patch(
+    //book details patch for librarian
+    app.patch(
       "/book-details/:id",
       verifyFBToken,
       verifyLibrarian,
@@ -294,8 +290,8 @@ async function run() {
       },
     );
 
-//book status patch by admin
-        app.patch("/books", verifyFBToken, verifyAdmin, async (req, res) => {
+    //book status patch by admin
+    app.patch("/books", verifyFBToken, verifyAdmin, async (req, res) => {
       const { bookId, newStatus } = req.query;
       const query = { _id: new ObjectId(bookId) };
       const updateDoc = {
@@ -307,13 +303,51 @@ async function run() {
       res.send(result);
     });
 
-//book delete by admin
-        app.delete("/books/:id", verifyFBToken, verifyAdmin, async (req, res) => {
+    //book delete by admin
+    app.delete("/books/:id", verifyFBToken, verifyAdmin, async (req, res) => {
       const { id } = req.params;
       const query = { _id: new ObjectId(id) };
       const result = await booksCollection.deleteOne(query);
       res.send(result);
     });
+    
+
+
+
+    
+    //payment related APIs
+
+
+    //payment chectout session
+    app.post("/payment-checkout-sessions", verifyFBToken, async (req, res) => {
+      const paymentInfo = req.body;
+      const amount = parseInt(paymentInfo.price) * 100;
+      const session = await stripe.checkout.sessions.create({
+        line_items: [
+          {
+            // Provide the exact Price ID (for example, price_1234) of the product you want to sell
+            price_data: {
+              currency: "usd",
+              unit_amount: amount,
+              product_data: {
+                name: paymentInfo.bookName,
+              },
+            },
+            quantity: 1,
+          },
+        ],
+        customer_email: paymentInfo.customerEmail,
+        metadata: {
+          name: paymentInfo.bookName,
+          orderId: paymentInfo.orderId,
+        },
+        mode: "payment",
+        success_url: `${process.env.SITE_DOMAIN}/dashboard/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+        cancel_url: `${process.env.SITE_DOMAIN}/dashboard/payment-cancelled`,
+      });
+      res.send({ url: session.url });
+    });
+
 
 
     // Send a ping to confirm a successful connection
